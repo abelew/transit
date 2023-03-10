@@ -1355,7 +1355,7 @@ def get_pos_hash_pt(path):
 #
 
 
-def get_pos_hash_gff(path, tag = 'ID', type = 'CDS'):
+def get_pos_hash_gff(path, feature_tag='ID', feature_type='CDS'):
     """Returns a dictionary that maps coordinates to a list of genes that occur at that coordinate.
 
     Arguments:
@@ -1367,12 +1367,17 @@ def get_pos_hash_gff(path, tag = 'ID', type = 'CDS'):
         dict: Dictionary of position to list of genes that share that position.
     """
     hash = {}
+    line_number = 0
+    features_found = 0
     for line in open(path):
+        line_number = line_number + 1
         if line.startswith("#"):
             continue
         tmp = line.strip().split("\t")
-        ## The third element of a gff is th
-        if (tmp[3]
+        type = tmp[2]
+        ## The third element of a gff is the feature type.
+        if type != feature_type:
+            continue
         features = dict(
             [
                 tuple(f.split("=", 1))
@@ -1381,15 +1386,19 @@ def get_pos_hash_gff(path, tag = 'ID', type = 'CDS'):
         )
         if tag not in features:
             continue
+        features_found = features_found + 1
         orf = features[tag]
         chr = tmp[0]
-        type = tmp[2]
         start = int(tmp[3])
         end = int(tmp[4])
         for pos in range(start, end + 1):
             if pos not in hash:
                 hash[pos] = []
             hash[pos].append(orf)
+    print(
+        "Out of %d lines, %d were of type %s and have the %s tag."
+        % (line_number, features_found, feature_type, feature_tag)
+    )
     return hash
 
 

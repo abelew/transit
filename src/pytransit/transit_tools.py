@@ -62,17 +62,17 @@ if hasWx:
 
             self.ID_HIMAR1 = wx.NewId()
             self.ID_TN5 = wx.NewId()
-    
+
             self.SetSize((500, 300))
             self.SetTitle("Warning:  Wig Files Do Not Include Empty Sites")
 
             mainSizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(mainSizer)
-    
+
             warningText = """
 
 One or more of your .wig files does not include any empty sites (i.e. sites with zero read-counts). The analysis methods in TRANSIT require knowing ALL possible insertion sites, even those without reads.
-    
+
     Please indicate how you want to proceed:
 
     As Himar1: You will need to provide the DNA sequence (.fasta format) and TRANSIT will automatically determine empty TA sites.
@@ -82,13 +82,13 @@ One or more of your .wig files does not include any empty sites (i.e. sites with
             warningStaticBox = wx.StaticText(self, wx.ID_ANY, warningText, (-1,-1), (-1, -1), wx.ALL)
             warningStaticBox.Wrap(480)
             mainSizer.Add(warningStaticBox, flag=wx.CENTER, border=5)
-    
+
             button_sizer = wx.BoxSizer(wx.HORIZONTAL)
             himar1Button = wx.Button(self, self.ID_HIMAR1, label='Proceed as Himar1')
             tn5Button = wx.Button(self, self.ID_TN5, label='Proceed as Tn5')
             cancelButton = wx.Button(self, wx.ID_CANCEL, label='Cancel')
 
-    
+
             button_sizer.Add(himar1Button, flag=wx.LEFT, border=5)
             button_sizer.Add(tn5Button, flag=wx.LEFT, border=5)
             button_sizer.Add(cancelButton, flag=wx.LEFT, border=5)
@@ -103,7 +103,7 @@ One or more of your .wig files does not include any empty sites (i.e. sites with
 
 
         def OnClose(self, event):
-    
+
             if self.IsModal():
                 self.EndModal(event.EventObject.Id)
             else:
@@ -142,17 +142,17 @@ def dirname(filepath):
 def cleanargs(rawargs):
     """Returns a list and a dictionary with positional and keyword arguments.
 
-    -This function assumes flags must start with a "-" and and cannot be a 
+    -This function assumes flags must start with a "-" and and cannot be a
         number (but can include them).
-    
-    -Flags should either be followed by the value they want to be associated 
+
+    -Flags should either be followed by the value they want to be associated
         with (i.e. -p 5) or will be assigned a value of True in the dictionary.
 
     -The dictionary will map flags to the name given minus ONE "-" sign in
-        front. If you use TWO minus signs in the flag name (i.e. --verbose), 
-        the dictionary key will be the name with ONE minus sign in front 
+        front. If you use TWO minus signs in the flag name (i.e. --verbose),
+        the dictionary key will be the name with ONE minus sign in front
         (i.e. {"-verbose":True}).
-    
+
 
     Arguments:
         rawargs (list): List of positional/keyword arguments. As obtained from
@@ -188,7 +188,7 @@ def cleanargs(rawargs):
                 nextLooksLikeList = False
 
 
-            # If still things in list, and they look like arguments to a flag, add them to dict 
+            # If still things in list, and they look like arguments to a flag, add them to dict
             if stillNotFinished and (nextIsNotArgument or nextLooksLikeList or nextIsNumber):
                 kwargs[rawargs[count][1:]] = rawargs[count+1]
                 count += 1
@@ -279,7 +279,7 @@ def validate_both_datasets(ctrldata, expdata):
         return True
 
 
-def validate_transposons_used(datasets, transposons, justWarn=True): 
+def validate_transposons_used(datasets, transposons, justWarn=True):
 
     #TODO: Write docstring
     # Check if transposon type is okay.
@@ -325,7 +325,7 @@ def validate_wig_format(wig_list, wxobj=None):
                 genome = ""
 
         elif result == dlg.ID_TN5:
-            status = 2; genome = "" 
+            status = 2; genome = ""
         else:
             status = 3; genome = ""
     return (status, genome)
@@ -337,10 +337,10 @@ def validate_filetypes(datasets, transposons, justWarn=True):
 
 def get_pos_hash(path):
     """Returns a dictionary that maps coordinates to a list of genes that occur at that coordinate.
-    
+
     Arguments:
         path (str): Path to annotation in .prot_table or GFF3 format.
-    
+
     Returns:
         dict: Dictionary of position to list of genes that share that position.
     """
@@ -349,7 +349,7 @@ def get_pos_hash(path):
         return tnseq_tools.get_pos_hash_gff(path)
     else:
         return tnseq_tools.get_pos_hash_pt(path)
-       
+
 
 def get_extended_pos_hash(path):
     """Returns a dictionary that maps coordinates to a list of genes that occur at that coordinate.
@@ -370,10 +370,10 @@ def get_extended_pos_hash(path):
 
 def get_gene_info(path):
     """Returns a dictionary that maps gene id to gene information.
-    
+
     Arguments:
         path (str): Path to annotation in .prot_table or GFF3 format.
-    
+
     Returns:
         dict: Dictionary of gene id to tuple of information:
             - name
@@ -381,7 +381,7 @@ def get_gene_info(path):
             - start coordinate
             - end coordinate
             - strand
-            
+
     """
     filename, file_extension = os.path.splitext(path)
     if file_extension.lower() in [".gff", ".gff3"]:
@@ -417,15 +417,14 @@ def convertToIGV(self, dataset_list, annotationPath, path, normchoice=None):
 
 def convertToCombinedWig(dataset_list, annotationPath, outputPath, normchoice="nonorm"):
     """Normalizes the input datasets and outputs the result in CombinedWig format.
-    
+
     Arguments:
         dataset_list (list): List of paths to datasets in .wig format
         annotationPath (str): Path to annotation in .prot_table or GFF3 format.
         outputPath (str): Desired output path.
         normchoice (str): Choice for normalization method.
-            
-    """
 
+    """
 
     (fulldata, position) = tnseq_tools.get_data(dataset_list)
     (fulldata, factors) = norm_tools.normalize_data(fulldata, normchoice, dataset_list, annotationPath)
@@ -457,16 +456,16 @@ def convertToCombinedWig(dataset_list, annotationPath, outputPath, normchoice="n
 
 def convertToGeneCountSummary(dataset_list, annotationPath, outputPath, normchoice="nonorm"):
     """Normalizes the input datasets and outputs the result in CombinedWig format.
-    
+
     Arguments:
         dataset_list (list): List of paths to datasets in .wig format
         annotationPath (str): Path to annotation in .prot_table or GFF3 format.
         outputPath (str): Desired output path.
         normchoice (str): Choice for normalization method.
-            
+
     """
 
-    (fulldata, position) = tnseq_tools.get_data(dataset_list) 
+    (fulldata, position) = tnseq_tools.get_data(dataset_list)
     (fulldata, factors) = norm_tools.normalize_data(fulldata, normchoice, dataset_list, annotationPath)
     output = open(outputPath, "w")
     output.write("#Summarized to Mean Gene Counts with TRANSIT.\n")
@@ -500,7 +499,7 @@ def convertToGeneCountSummary(dataset_list, annotationPath, outputPath, normchoi
 
 def get_validated_data(wig_list, wxobj=None):
     """ Returns a tuple of (data, position) containing a matrix of raw read-counts
-        , and list of coordinates. 
+        , and list of coordinates.
 
     Arguments:
         wig_list (list): List of paths to wig files.
@@ -524,7 +523,7 @@ def get_validated_data(wig_list, wxobj=None):
 
     # Regular file with empty sites
     if status == 0:
-        return tnseq_tools.get_data(wig_list)    
+        return tnseq_tools.get_data(wig_list)
     # No empty sites, decided to proceed as Himar1
     elif status == 1:
         return tnseq_tools.get_data_w_genome(wig_list, genome)
@@ -534,4 +533,3 @@ def get_validated_data(wig_list, wxobj=None):
     # Didn't choose either.... what!?
     else:
         return tnseq_tools.get_data([])
-
