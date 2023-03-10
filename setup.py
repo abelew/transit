@@ -113,6 +113,10 @@ setup(
 
     # Choose your license
     license='GNU GPL',
+    # I think this may need to also specify a version less than 3.10 due to some incompatibilities
+    # between wxPython and python > 3.9.  E.g. when I tried installing transit with a new python,
+    # it fell down due to collections getting renamed to collections.abc and therefore when wxPython
+    # tries to do 'from collections import Mapping' it ends badly.
     python_requires='>=3.6',
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
 
@@ -150,11 +154,12 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     # 'pypubsub<4.0' and 'wxPython' are needed for GUI only, but go ahead and install them
     # the reason for restriction on pypubsub is that version>=4.0 does not work with python2 - I can probably get rid of this restriction, since everybody must be using python3 by now
-    install_requires=['setuptools', 'numpy~=1.16', 'scipy~=1.2', 'matplotlib~=3.0', 'pillow', 'scikit-learn', 'statsmodels~=0.9', 'pypubsub<4.0', 'wxPython'],
+    install_requires=['setuptools', 'numpy~=1.16', 'scipy~=1.2', 'matplotlib~=3.0', 'pillow',
+                      'scikit-learn', 'statsmodels~=0.9', 'pypubsub<4.0', 'wxPython', 'xopen'],
 
     #dependency_links = [
-    #	"git+https://github.com/wxWidgets/wxPython.git#egg=wxPython"
-	#],
+    # "git+https://github.com/wxWidgets/wxPython.git#egg=wxPython"
+    #],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -193,4 +198,3 @@ setup(
         'upload': UploadCommand,
     },
 )
-

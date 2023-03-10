@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-
 import sys
 from collections import defaultdict
 
@@ -1310,7 +1308,7 @@ class TnSeekFrame(MainFrame):
 #
 
     def scatterFunc(self, event):
-        """ """
+        """ Creates a scatter plot comparing two samples. """
         #annotationpath = self.annotation
         datasets = self.ctrlSelected() + self.expSelected()
         if len(datasets) == 2:

@@ -25,6 +25,7 @@ import sys, re, shutil
 import platform
 import gzip
 import subprocess
+from xopen import xopen
 from collections import defaultdict
 
 def cleanargs(rawargs):
@@ -79,22 +80,32 @@ def analyze_dataset(wigfile):
 
 #############################################################################
 
-def fastq2reads(infile,outfile,maxreads):
-  output = open(outfile,"w")
-  cnt,tot = 0,0
-  for line in open(infile):
-    if cnt==0 and line[0]=='@':
+def fastq2reads(infile, outfile, maxreads = -1):
+  """Read an input sequence file and write the reads uncompressed.
+
+  Arguments:
+  infile -- Input file from which to extract sequence reads.
+  outfile -- Output file to which to write the individual reads.
+  maxreads -- I assume used for testing, if it is not -1,
+              break out after this number of reads have been read.
+  """
+  output = open(outfile, "w")
+  with xopen(infile) as infd:
+    cnt, tot = 0,0
+    for line in infd:
+      if cnt == 0 and line[0] == '@':
         tot += 1
-        if tot%1000000==0: message("%s reads processed" % tot)
-    if maxreads > -1:
+        if tot % 1000000 == 0:
+          message("%s reads processed" % tot)
+      if maxreads > -1:
         if tot > maxreads:
             break
-    if cnt==0:
-      h = line[1:] # strip off '@'
-      #h = h.replace(' ','_')
-      output.write(">%s" % h)
-    if cnt==1: output.write(line)
-    cnt = (cnt+1)%4
+      if cnt == 0:
+        h = line[1:] # strip off '@'
+        output.write(">%s" % h)
+      if cnt == 1:
+        output.write(line)
+      cnt = (cnt + 1) % 4
   output.close()
 
 # the headers for each pair must be identical up to /1 and /2 at the ends
@@ -147,11 +158,11 @@ def fix_paired_headers_for_bwa(reads1,reads2):
 
   '''
   if platform.platform == 'win32':
-	  os.system("move %s %s" % (temp1,reads1))
-	  os.system("move %s %s" % (temp2,reads2))
+      os.system("move %s %s" % (temp1,reads1))
+      os.system("move %s %s" % (temp2,reads2))
   else:
-	  os.system("mv %s %s"%(temp1, reads1))
-	  os.system("mv %s %s" % (temp2, reads2))
+      os.system("mv %s %s"%(temp1, reads1))
+      os.system("mv %s %s" % (temp2, reads2))
   '''
 
 ##############################
@@ -235,7 +246,7 @@ def mmfind2(G,n,H,m,max): # lengths; assume n>m
     return -1
 
 
-# TRI (10/20/2021): I switched back to mmfind1(), since 
+# TRI (10/20/2021): I switched back to mmfind1(), since
 #   mmfind2() wasn't working right; increasing -mismatches caused fewer reads to be recognized with prefix and trimmed
 
 
@@ -261,10 +272,10 @@ def extract_staggered(infile,outfile,vars):
   P,Q = vars.primer_start_window
 
   if vars.window!=None: P,Q = vars.window[0],vars.window[1]
- 
+
   # if -window-size specified, automatically set P,Q by tolerance [RJ]
   if vars.window_size!=-1:
-    origin = 28 - len(Tn)                                     
+    origin = 28 - len(Tn)
     P,Q = windowize(origin, vars.window_size)
 
   if vars.barseq_catalog_out!=None: P,Q = 0,100 # relax for barseq
@@ -385,7 +396,7 @@ def read_genome(filename, replicon_index):
   cur_index = 0
   first_iteration = True
   for line in open(filename):
-    if line[0]=='>': 
+    if line[0]=='>':
       if first_iteration:
         continue # skip fasta header
       else:
@@ -399,14 +410,14 @@ def read_genome(filename, replicon_index):
 
 def parse_sam_header(sam_filename):
     parsed_header = {}
-    
+
     f = open(sam_filename, "r")
     for line in f:
 
         # Stop parsing once end of SAM header is reached
         if not line[0] == '@':
             break
-        
+
         header_line = line.split()
         at_sign_sam_tag = header_line[0]
         if at_sign_sam_tag not in parsed_header:
@@ -419,30 +430,30 @@ def parse_sam_header(sam_filename):
             tag_value = ':'.join(tag_pair[1:])  # in case the value of the tag contains ':', which we used as delimiter for split
             tag_line[tag_name] = tag_value
         parsed_header[at_sign_sam_tag].append(tag_line)
-    
+
     f.close()
 
     return parsed_header
 
 
 def get_replicon_names_from_sam_header(sam_header):
-    
+
     if "@SQ" not in sam_header:
         raise ValueError("No @SQ tags found in SAM header")
 
     replicon_names = []
-    
+
     for header_line in sam_header["@SQ"]:
         if "SN" not in header_line:
             raise ValueError("No SN tag found in an entry of the SAM header")
         else:
             replicon_names.append(header_line["SN"])
-    
+
     return replicon_names
 
 
 def count_sam_header_lines(sam_header):
-    
+
     num_sam_header_lines = 0
 
     for at_sign_sam_tag in sam_header:
@@ -467,7 +478,7 @@ def count_sam_header_lines(sam_header):
 # code[6]=1 means read1
 # code[4]=1 means reverse strand
 
-def samcode(num): 
+def samcode(num):
     num = int(num)
     binary_num = bin(num)
     truncated_0b_binary_num = binary_num[2:]
@@ -483,13 +494,13 @@ def template_counts(ref,sam,bcfile,vars):
     line = line.rstrip()
     if line[0]=='>': id = line[1:]
     else: barcodes[id] = line
-  
+
   hits = {}
   sam_header = parse_sam_header(sam)
   replicon_names = get_replicon_names_from_sam_header(sam_header)
   for replicon in replicon_names:
     hits[replicon] = {}
-  
+
   skip = count_sam_header_lines(sam_header)
   for line in open(sam):
     #if line[0]=='@': continue
@@ -520,7 +531,7 @@ def template_counts(ref,sam,bcfile,vars):
     genome = read_genome(ref, replicon_index)
     for i in range(len(genome)-1):
       #if genome[i:i+2].upper()=="TA":
-      if vars.transposon=="Himar1" and genome[i:i+2].upper()!="TA": continue 
+      if vars.transposon=="Himar1" and genome[i:i+2].upper()!="TA": continue
       else:
         pos = i+1
         h = hits[replicon_names[replicon_index]].get(pos,[])
@@ -530,7 +541,7 @@ def template_counts(ref,sam,bcfile,vars):
         uf = list(filter(lambda x: x[0]=='F',u))
         ur = list(filter(lambda x: x[0]=='R',u))
         data = [pos,len(f),len(uf),len(r),len(ur),len(f)+len(r),len(uf)+len(ur)]
-        sites.append(data)    
+        sites.append(data)
     sites_list.append(sites)
 
   return sites_list     # list of (coord, Fwd_Rd_Ct, Fwd_Templ_Ct, Rev_Rd_Ct, Rev_Templ_Ct, Tot_Rd_Ct, Tot_Templ_Ct)
@@ -552,7 +563,7 @@ def read_counts(ref,sam,vars):
     sites_dict = {}
     sam_header = parse_sam_header(sam)
     replicon_names = get_replicon_names_from_sam_header(sam_header)
-    
+
     for replicon_names_index in range(vars.num_replicons):
         sites = {}
         genome = read_genome(ref, replicon_names_index)
@@ -631,7 +642,7 @@ def driver(vars):
     contents_of_multiline_fasta = ""
     # Create multi-line FASTA if more than one reference file is specified
     for reference_genome in vars.ref:
-      fasta_names_combined += ("%s%s" % ("_", os.path.splitext(os.path.basename(reference_genome))[0])) 
+      fasta_names_combined += ("%s%s" % ("_", os.path.splitext(os.path.basename(reference_genome))[0]))
       with open(reference_genome, "r") as ref:
         contents = ref.read()
       if not contents.endswith('\n'):
@@ -670,7 +681,7 @@ def driver(vars):
   else:
     vars.tc.append(vars.base+".counts")
     vars.wig.append(vars.base+".wig")
-  
+
   # Handled independently for CLI and GUI.
   # if not vars.prefix:
   #   if vars.transposon=="Tn5": vars.prefix = "TAAGAGACAG"
@@ -679,9 +690,9 @@ def driver(vars):
 
   try:
     extract_reads(vars)
-    
+
     run_bwa(vars)
-    
+
     generate_output(vars)
 
   except ValueError as err:
@@ -872,13 +883,13 @@ def run_bwa(vars):
     if not os.path.exists(vars.ref+".amb"):
       cmd = [vars.bwa, "index", vars.ref]
       bwa_subprocess(cmd, sys.stdout)
-    
-    
+
+
     cmd = [vars.bwa, vars.bwa_alg]
     if vars.flags.strip():
         cmd.extend(vars.flags.split(" "))
     cmd.extend([vars.ref, vars.trimmed1])
-    
+
 
     if vars.bwa_alg == "mem":
         if vars.single_end == False:
@@ -902,12 +913,12 @@ def run_bwa(vars):
             cmd = [vars.bwa, vars.bwa_alg]
             if vars.flags.strip():
                 cmd.extend(vars.flags.split(" "))
-            
+
             cmd.extend([vars.ref, vars.genomic2])
             outfile = open(vars.sai2, "w")
             bwa_subprocess(cmd, outfile)
             outfile.close()
-            
+
             cmd = [vars.bwa, "sampe", vars.ref, vars.sai1, vars.sai2, vars.trimmed1, vars.genomic2]
             outfile = open(vars.sam, "w")
             bwa_subprocess(cmd, outfile)
@@ -977,7 +988,7 @@ def popularity(lst):
 def create_barseq_catalog(vars, replicon_index):
   barcodes = {} # headers->barcodes
   for line in open(vars.base+".barseq"):
-    if line[0]=='>': 
+    if line[0]=='>':
       header = line.rstrip()[1:]
       header = header.split()[0] # in case it has a space, which is dropped by bwa in sam file
     else: barcodes[header] = line.split('\n')[0]
@@ -992,7 +1003,7 @@ def create_barseq_catalog(vars, replicon_index):
       header,coord = w[0],int(w[3])
       # see how I adjust coords in read_counts()
       strand,delta = 'F',-2
-      if samcode==16: strand,delta = 'R',len(w[9]); 
+      if samcode==16: strand,delta = 'R',len(w[9]);
       coord += delta
       if strand=='R': coord *= -1
       if coord not in sites: sites[coord] = [] # use -co for minus strand
@@ -1004,7 +1015,7 @@ def create_barseq_catalog(vars, replicon_index):
   for site,bclist in sites.items():
     for bc in bclist:
       if bc not in mapsto: mapsto[bc] = []
-      if 'X' not in bc: 
+      if 'X' not in bc:
         mapsto[bc].append(site)
         totbc += 1
         if site<0: site *= -1
@@ -1013,13 +1024,13 @@ def create_barseq_catalog(vars, replicon_index):
   # good barcodes are those that are associated with only 1 site (must be TA?)
   # what about redundant sites like IS elements?
   goodbc = {}
-  for bc,sites2 in mapsto.items(): 
+  for bc,sites2 in mapsto.items():
     pop = popularity(sites2) # make a table of locations at which the barcode appears
     #print(bc,pop)
     if len(pop)==1: goodbc[bc] = 1
   #for x in sorted(sites.items()): print(x[0],genome[x[0]-1:x[0]+1],popularity(x[1]))
 
-  file = open(vars.barseq_catalog_out[replicon_index],"w")  
+  file = open(vars.barseq_catalog_out[replicon_index],"w")
   file.write("# Barseq (stats are at the bottom): reads = %s, ref = %s\n" % (vars.fq1,vars.ref))
   n = len(genome)
   a,b = 0,0
@@ -1033,17 +1044,17 @@ def create_barseq_catalog(vars, replicon_index):
       if len(pop)>0: b += 1
       else: file.write("# %s %s\n" %(co,genome[i:i+2]))
       for (bc,strand),cnt in pop:
-        if bc in goodbc: 
+        if bc in goodbc:
           file.write("%s %s %s %s %s\n" % (co,genome[i:i+2],strand,bc,cnt))
   file.write("# total_reads: %s, total_barcodes: %s, map_to_TAs: %s, distinct_bc: %s, unimapped: %s, TA_sites_hit: %s/%s\n" % (nreads,totbc,maptoTAs,len(mapsto.keys()),len(goodbc.keys()),b,a))
   file.close()
 
 
 def generate_output(vars):
-  if vars.barseq_catalog_out!=None: 
+  if vars.barseq_catalog_out!=None:
     message("creating Barseq catalog file: "+vars.barseq_catalog_out) # [RJ] TODO: This should be indexed by replicon_index too... maybe
     create_barseq_catalog(vars)
-  
+
   rcounts,tcounts,rc,tc,ratio,ta_sites,tas_hit,density,max_tc,max_coord,NZmean,FR_corr,BC_corr = [],[],[],[],[],[],[],[],[],[],[],[],[]
 
   message("tabulating template counts and statistics for reference genome %s" % vars.ref)
@@ -1094,7 +1105,7 @@ def generate_output(vars):
       cur_BC_corr = corr([x for x in cur_rcounts if x!=0],[x for x in cur_tcounts if x!=0])
     except ValueError:
       cur_BC_corr = float("nan")
-    
+
     rcounts.append(cur_rcounts)
     tcounts.append(cur_tcounts)
     rc.append(cur_rc)
@@ -1196,7 +1207,7 @@ def generate_output(vars):
     if adapter in line: nadapter += 1
     #if "TGTTA" in line and Himar1 not in line: misprimed += 1
     # basically, these should correspond to insertions at non-TA sites (so the terminal TA of ...TGTTA will be different)
-    if Himar1[:-5] in line and Himar1 not in line: misprimed += 1 
+    if Himar1[:-5] in line and Himar1 not in line: misprimed += 1
 
   output.write("# Break-down of total reads (%s):\n" % tot_reads)
   output.write("#  %s reads (%0.1f%%) lack the expected Tn prefix\n" % (tot_reads-vars.tot_tgtta,(tot_reads-vars.tot_tgtta)*100/float(tot_reads)))
@@ -1292,7 +1303,7 @@ def verify_inputs(vars):
     vars.single_end = False
     if vars.fq2=="": vars.single_end = True
     elif not os.path.exists(vars.fq2): error("reads2 file not found: "+vars.fq2)
-    
+
     if not vars.ref.__class__.__name__ == "list":
         vars.ref = [vars.ref]
     for ref_genome in vars.ref:
@@ -1335,7 +1346,7 @@ def initialize_globals(vars, args=[], kwargs={}):
     vars.primer_start_window = 0,20
     vars.window = None
     vars.bwa_alg = "mem"
-    
+
     # Update defaults
     protocol = kwargs.get("protocol", "").lower()
     if protocol:
@@ -1392,7 +1403,7 @@ def initialize_globals(vars, args=[], kwargs={}):
             raise ValueError("Error: bwa-alg can only be 'mem' or 'aln'")
         else:
             vars.bwa_alg = kwargs["bwa-alg"]
-   
+
     if "replicon-ids" in kwargs:
         vars.replicon_ids = kwargs["replicon-ids"]
 
