@@ -1371,26 +1371,36 @@ def get_pos_hash_gff(path, feature_tag='ID', feature_type='CDS'):
     features_found = 0
     for line in open(path):
         line_number = line_number + 1
+        ## Skip comments and blank lines.
         if line.startswith("#"):
             continue
-        tmp = line.strip().split("\t")
-        type = tmp[2]
+        ## I wonder if split or a regex is faster in python?
+        ## or would a line.strip() if line: be faster?
+        if len(line.split()) == 0:
+            continue
+        elements = line.strip().split("\t")
+        line_type = elements[2]
+        all_tags = elements[8]
         ## The third element of a gff is the feature type.
-        if type != feature_type:
+        if line_type != feature_type:
             continue
         features = dict(
             [
                 tuple(f.split("=", 1))
-                for f in filter(lambda x: "=" in x, tmp[8].split(";"))
+                for f in filter(lambda x: "=" in x, all_tags.split(";"))
             ]
         )
-        if tag not in features:
+        if feature_tag not in features:
             continue
         features_found = features_found + 1
-        orf = features[tag]
-        chr = tmp[0]
-        start = int(tmp[3])
-        end = int(tmp[4])
+        orf = features[feature_tag]
+        ## flycheck reminded me that the contig/chromosome is never used, but this is
+        ## kind of a problem if we are going to use this for poorly assembled
+        ## genomes.  My silly cyoa has some logic to deal with that, perhaps I can use it here?
+        ## or just leave it alone.
+        ## contig = elements[0]
+        start = int(elements[3])
+        end = int(elements[4])
         for pos in range(start, end + 1):
             if pos not in hash:
                 hash[pos] = []
